@@ -7,11 +7,10 @@ from requests_html import HTMLSession
 
 class Signatory:
 
-    BASE_URL = "https://moncompte.dawan.fr/"
-
     def __init__(self):
         load_dotenv()
 
+        self.BASE_URL = os.getenv("BASE_URL")
         self.EMAIL = os.getenv("EMAIL")
         self.PASSWORD = os.getenv("PASSWORD")
         self.FIRST_NAME = os.getenv("FIRST_NAME")
@@ -24,7 +23,7 @@ class Signatory:
         self.session = HTMLSession()
 
     def __login(self):
-        login_url = Signatory.BASE_URL + "connexion"
+        login_url = self.BASE_URL + "connexion"
         login_page = self.session.get(login_url)
 
         csrf = login_page.html.find('input[name="_csrf_token"]', first=True)
@@ -61,7 +60,7 @@ class Signatory:
         half = "am" if datetime.now().hour < 12 else "pm"
 
         sign_url = (
-            Signatory.BASE_URL
+            self.BASE_URL
             + f"formation/{self.LAST_NAME}-{self.FIRST_NAME}---{self.FORMATION_INDEX}/emarger/{today}/{half}"
         )
 
