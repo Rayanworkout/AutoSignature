@@ -17,8 +17,15 @@ class Signatory:
         self.LAST_NAME = os.getenv("LAST_NAME")
         self.FORMATION_INDEX = os.getenv("FORMATION_INDEX")
 
-        if not self.EMAIL or not self.PASSWORD:
-            raise ValueError("Missing email or password in .env file")
+        if (
+            not self.EMAIL
+            or not self.PASSWORD
+            or not self.FORMATION_INDEX
+            or not self.FIRST_NAME
+            or not self.LAST_NAME
+            or not self.BASE_URL
+        ):
+            raise ValueError("Missing data in .env file")
 
         self.session = HTMLSession()
 
