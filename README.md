@@ -10,7 +10,7 @@ git clone https://github.com/Rayanworkout/AutoSignature
 
 ```bash
 py -m venv .venv  # or python3 main.py
-source .venv/bin/activate
+source .venv/bin/activate  # or .venv\Scripts\activate
 
 pip install -r requirements.txt
 ```
