@@ -40,14 +40,14 @@ class Signatory:
         if not csrf_token:
             raise ValueError("Could not get CSRF token, aborting.")
 
-        form_data = {
+        payload = {
             "_csrf_token": csrf_token,
             "_username": self.EMAIL,
             "_password": self.PASSWORD,
         }
 
         # Perform login
-        response = self.session.post(login_url, data=form_data)
+        response = self.session.post(login_url, data=payload)
 
         if not response.ok or "Mes démarches" not in response.text:
             raise ValueError("Failed to login")
@@ -70,9 +70,13 @@ class Signatory:
             self.BASE_URL
             + f"formation/{self.LAST_NAME}-{self.FIRST_NAME}---{self.FORMATION_INDEX}/emarger/{today}/{half}"
         )
+        
+        payload = {
+            "sign": ""
+        }
 
         # Get the page with the list of documents to sign
-        sign_response = self.session.post(sign_url)
+        sign_response = self.session.post(sign_url, data=payload)
 
         if not sign_response.ok:
             raise ValueError(
