@@ -25,7 +25,7 @@ class Signatory:
             or not self.LAST_NAME
             or not self.BASE_URL
         ):
-            raise ValueError("Missing data in .env file")
+            raise ValueError("Missing data in .env file, cannot proceed")
 
         self.session = HTMLSession()
 
@@ -95,4 +95,4 @@ class Signatory:
 
 
 if __name__ == "__main__":
-    Signatory().run()
+    Signatory()#.run()

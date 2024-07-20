@@ -9,7 +9,7 @@ git clone https://github.com/Rayanworkout/AutoSignature
 2) Create virtual environment and install requirements
 
 ```bash
-py -m venv .venv  # or python3 main.py
+python3 -m venv .venv  # or py -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate
 
 pip install -r requirements.txt
@@ -20,5 +20,5 @@ pip install -r requirements.txt
 4) Run the script
 
 ```bash
-py main.py   # or python3 main.py
+python3 main.py   # or py main.py
 ```
