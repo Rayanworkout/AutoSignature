@@ -4,6 +4,15 @@ from datetime import datetime
 from dotenv import load_dotenv
 from requests_html import HTMLSession
 
+from dataclasses import dataclass
+
+@dataclass
+class Session:
+    date: str
+    half: str
+
+    def __str__(self):
+        return f"{self.date} {self.half}"
 
 class Signatory:
 
@@ -27,8 +36,28 @@ class Signatory:
         ):
             raise ValueError("Missing data in .env file, cannot proceed")
 
+        self.FIRST_NAME = self.FIRST_NAME.lower()
+        self.LAST_NAME = self.LAST_NAME.lower()
+        
+        if not os.path.exists("signed_sessions.txt"):
+            with open("signed_sessions.txt", "w") as f:
+                f.write("")
+            print("Created signed_sessions.txt")
+        
         self.session = HTMLSession()
 
+    def __session_is_signed(self, session: Session):
+        with open("signed_sessions.txt", "r") as f:
+            signed_sessions = f.read().splitlines()
+
+        return str(session) in signed_sessions
+    
+    def __save_session(self, session: Session):
+        with open("signed_sessions.txt", "a") as f:
+            f.write(f"{session}\n")
+        print(f"Saved session {session}")
+        
+        
     def __login(self):
         login_url = self.BASE_URL + "connexion"
         login_page = self.session.get(login_url)
@@ -56,15 +85,20 @@ class Signatory:
 
     def __sign(self):
 
+        today = datetime.now().strftime("%Y-%m-%d")
+        half = "am" if datetime.now().hour < 12 else "pm"
+        
+        if self.__session_is_signed(Session(today, half)):
+            print(f"Up to date !")
+            return
+        
+        
         login = self.__login()
 
         if login is False:
-            raise ValueError("Failed to login")
+            raise ValueError("Failed to login.")
 
-        print("Logged in successfully")
-
-        today = datetime.now().strftime("%Y-%m-%d")
-        half = "am" if datetime.now().hour < 12 else "pm"
+        print("Logged in successfully.")
 
         sign_url = (
             self.BASE_URL
@@ -80,10 +114,12 @@ class Signatory:
 
         if not sign_response.ok:
             raise ValueError(
-                f"Failed to sign for {today} {'morning' if half == 'am' else 'afternoon'}"
+                f"Failed to sign for {today} {'morning' if half == 'am' else 'afternoon'}."
             )
 
-        print(f"Signed for {today} {'morning' if half == 'am' else 'afternoon'}")
+        print(f"Signed for {today} {'morning' if half == 'am' else 'afternoon'}.")
+        
+        self.__save_session(Session(today, half))
 
     def run(self):
         try:
@@ -95,4 +131,4 @@ class Signatory:
 
 
 if __name__ == "__main__":
-    Signatory()#.run()
+    Signatory().run()
