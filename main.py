@@ -1,12 +1,16 @@
 import os
+import requests
+import time
+import schedule
 
+from dataclasses import dataclass
 from datetime import datetime
 from dotenv import load_dotenv
 from requests_html import HTMLSession
+from typing import Union
 
-from dataclasses import dataclass
 
-@dataclass
+@dataclass(init=True)
 class Session:
     date: str
     half: str
@@ -14,7 +18,11 @@ class Session:
     def __str__(self):
         return f"{self.date} {self.half}"
 
+
 class Signatory:
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    signed_sessions_file = os.path.join(script_dir, "signed_sessions.txt")
 
     def __init__(self):
         load_dotenv()
@@ -25,6 +33,10 @@ class Signatory:
         self.FIRST_NAME = os.getenv("FIRST_NAME")
         self.LAST_NAME = os.getenv("LAST_NAME")
         self.FORMATION_INDEX = os.getenv("FORMATION_INDEX")
+
+        # Optional
+        self.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+        self.BOT_TOKEN = os.getenv("BOT_TOKEN")
 
         if (
             not self.EMAIL
@@ -38,27 +50,25 @@ class Signatory:
 
         self.FIRST_NAME = self.FIRST_NAME.lower()
         self.LAST_NAME = self.LAST_NAME.lower()
-        
-        if not os.path.exists("signed_sessions.txt"):
-            with open("signed_sessions.txt", "w") as f:
+
+        if not os.path.exists(Signatory.signed_sessions_file):
+            with open(Signatory.signed_sessions_file, "w") as f:
                 f.write("")
             print("Created signed_sessions.txt")
-        
+
         self.session = HTMLSession()
 
     def __session_is_signed(self, session: Session):
-        with open("signed_sessions.txt", "r") as f:
+        with open(Signatory.signed_sessions_file, "r") as f:
             signed_sessions = f.read().splitlines()
 
         return str(session) in signed_sessions
-    
+
     def __save_session(self, session: Session):
-        with open("signed_sessions.txt", "a") as f:
+        with open(Signatory.signed_sessions_file, "a") as f:
             f.write(f"{session}\n")
-        print(f"Saved session {session}")
-        
-        
-    def __login(self):
+
+    def __login(self) -> Union[True, ValueError]:
         login_url = self.BASE_URL + "connexion"
         login_page = self.session.get(login_url)
 
@@ -84,30 +94,24 @@ class Signatory:
         return True
 
     def __sign(self):
-
         today = datetime.now().strftime("%Y-%m-%d")
         half = "am" if datetime.now().hour < 12 else "pm"
-        
+
         if self.__session_is_signed(Session(today, half)):
             print(f"Up to date !")
             return
-        
-        
+
         login = self.__login()
 
         if login is False:
             raise ValueError("Failed to login.")
 
-        print("Logged in successfully.")
-
         sign_url = (
             self.BASE_URL
             + f"formation/{self.LAST_NAME}-{self.FIRST_NAME}---{self.FORMATION_INDEX}/emarger/{today}/{half}"
         )
-        
-        payload = {
-            "sign": ""
-        }
+
+        payload = {"sign": ""}
 
         # Get the page with the list of documents to sign
         sign_response = self.session.post(sign_url, data=payload)
@@ -118,17 +122,35 @@ class Signatory:
             )
 
         print(f"Signed for {today} {'morning' if half == 'am' else 'afternoon'}.")
-        
+
         self.__save_session(Session(today, half))
+        self.__telegram_message()
+
+    def __telegram_message(
+        self, message: str = "Successfully signed for this session."
+    ):
+        requests.get(
+            f"https://api.telegram.org/bot{self.BOT_TOKEN}/"
+            f"sendMessage?chat_id={self.TELEGRAM_CHAT_ID}&text={message}"
+        )
 
     def run(self):
-        try:
-            self.__sign()
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            self.session.close()
+        # Running on weekdays only
+        if datetime.today().weekday() < 5:
+            try:
+                self.__sign()
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                self.__telegram_message(f"Could not sign: {e}")
+            finally:
+                self.session.close()
 
 
 if __name__ == "__main__":
-    Signatory().run()
+    print("Starting...")
+    schedule.every().day.at("10:30").do(Signatory().run)
+    schedule.every().day.at("14:00").do(Signatory().run)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
