@@ -142,6 +142,12 @@ class Signatory:
             except Exception as e:
                 print(f"An error occurred: {e}")
                 self.__telegram_message(f"Could not sign: {e}")
+
+            except KeyboardInterrupt:
+                print("Exiting...")
+                self.session.close()
+                exit(0)
+
             finally:
                 self.session.close()
 
