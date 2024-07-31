@@ -33,6 +33,9 @@ class Signatory:
         self.FIRST_NAME = os.getenv("FIRST_NAME")
         self.LAST_NAME = os.getenv("LAST_NAME")
         self.FORMATION_INDEX = os.getenv("FORMATION_INDEX")
+        self.LESSON_DAYS_DURATION = os.getenv("LESSON_DAYS_DURATION")
+
+        self.signature_count = 0
 
         # Optional
         self.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -45,11 +48,17 @@ class Signatory:
             or not self.FIRST_NAME
             or not self.LAST_NAME
             or not self.BASE_URL
+            or not self.LESSON_DAYS_DURATION
         ):
             raise ValueError("Missing data in .env file, cannot proceed")
 
         self.FIRST_NAME = self.FIRST_NAME.lower()
         self.LAST_NAME = self.LAST_NAME.lower()
+
+        if self.LESSON_DAYS_DURATION.isdigit():
+            self.number_of_signatures = int(self.LESSON_DAYS_DURATION) * 2
+        else:
+            raise ValueError("LESSON_DAYS_DURATION must be an integer")
 
         if not os.path.exists(Signatory.signed_sessions_file):
             with open(Signatory.signed_sessions_file, "w") as f:
@@ -138,7 +147,15 @@ class Signatory:
         # Running on weekdays only
         if datetime.today().weekday() < 5:
             try:
-                self.__sign()
+                if self.signature_count <= self.number_of_signatures:
+                    self.__sign()
+                    self.signature_count += 1
+                else:
+                    self.__telegram_message(
+                        "Successfully signed for the whole formation.\n\nPlease provide a new formation index."
+                    )
+                    exit(0)
+
             except Exception as e:
                 print(f"An error occurred: {e}")
                 self.__telegram_message(f"Could not sign: {e}")
@@ -154,8 +171,8 @@ class Signatory:
 
 if __name__ == "__main__":
     print("Starting...")
-    schedule.every().day.at("10:30").do(Signatory().run)
-    schedule.every().day.at("14:00").do(Signatory().run)
+    schedule.every().day.at("11:30").do(Signatory().run)
+    schedule.every().day.at("15:00").do(Signatory().run)
 
     while True:
         schedule.run_pending()
