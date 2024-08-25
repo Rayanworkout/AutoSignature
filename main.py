@@ -41,24 +41,26 @@ class Signatory:
         self.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
         self.BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-        if (
-            not self.EMAIL
-            or not self.PASSWORD
-            or not self.FORMATION_INDEX
-            or not self.FIRST_NAME
-            or not self.LAST_NAME
-            or not self.BASE_URL
-            or not self.LESSON_DAYS_DURATION
+        if not all(
+            (
+                self.EMAIL,
+                self.PASSWORD,
+                self.FORMATION_INDEX,
+                self.FIRST_NAME,
+                self.LAST_NAME,
+                self.BASE_URL,
+                self.LESSON_DAYS_DURATION,
+            )
         ):
             raise ValueError("Missing data in .env file, cannot proceed")
 
         self.FIRST_NAME = self.FIRST_NAME.lower()
         self.LAST_NAME = self.LAST_NAME.lower()
 
-        if self.LESSON_DAYS_DURATION.isdigit():
-            self.number_of_signatures = int(self.LESSON_DAYS_DURATION) * 2
-        else:
+        if not self.LESSON_DAYS_DURATION.isdigit():
             raise ValueError("LESSON_DAYS_DURATION must be an integer")
+
+        self.number_of_signatures = int(self.LESSON_DAYS_DURATION) * 2
 
         if not os.path.exists(Signatory.signed_sessions_file):
             with open(Signatory.signed_sessions_file, "w") as f:
